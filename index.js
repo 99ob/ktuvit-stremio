@@ -4,6 +4,7 @@ const { httpLogger } = require("./common/httpLogger");
 const config = require("config");
 const express = require("express");
 const cors = require("cors");
+const requireAddonToken = require("./middlewares/requireAddonToken");
 const { serveManifest } = require("./routes/manifest");
 const landing = require("./routes/landing/landing");
 const { initKtuvitManager } = require("./clients/ktuvit");
@@ -33,7 +34,7 @@ const respondWithHeaders = function (req, res, next) {
   next();
 };
 
-addon.get("/manifest.json", [respondWithHeaders, serveManifest]);
+addon.get("/:token/manifest.json", [requireAddonToken, respondWithHeaders, serveManifest]);
 
 addon.get("/", landing);
 
@@ -42,14 +43,18 @@ addon.get("/README.md", (req, res) => {
   res.sendFile(`${__dirname}/README.md`);
 });
 
-addon.get("/subtitles/:type/:imdbId/:query?.json", [
+addon.get("/:token/subtitles/:type/:imdbId/:query?.json", [
+  requireAddonToken,
   respondWithHeaders,
   extractTitleInfo,
   fetchSubsMiddleware,
   formatSubs,
 ]);
 
-addon.get("/srt/:ktuvitId/:subId?.srt", downloadSrtFromKtuvit);
+addon.get("/:token/srt/:ktuvitId/:subId?.srt", requireAddonToken, downloadSrtFromKtuvit);
+
+// Respond immediately for unknown URLs instead of leaving requests hanging.
+addon.use((req, res) => res.status(404).json({ error: "Not Found" }));
 
 async function init() {
   logger.info("Starting initialization.");
@@ -60,7 +65,7 @@ async function init() {
     await initSubs();
     logger.info("Initializing srt downloader.");
     await initSrtDownloader();
-    addon.listen(PORT, function () {
+    addon.listen(Number(process.env.PORT) || PORT, "0.0.0.0", function () {
       logger.info(`Started addon on: ${HTTP}://${HOSTNAME}:${PORT}`);
     });
   } catch (err) {

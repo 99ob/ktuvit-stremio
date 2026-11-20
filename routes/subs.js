@@ -141,8 +141,8 @@ const formatSubs = (req, res) => {
       lang: "heb",
       url: config.get("enableLocalServerEncoding")
         ? LOCAL_SERVER_ENCODER_URL +
-          formatSrtUrl(req.title.ktuvitID, ktuvitSub.id)
-        : formatSrtUrl(req.title.ktuvitID, ktuvitSub.id),
+          formatSrtUrl(req.title.ktuvitID, ktuvitSub.id, req.params.token)
+        : formatSrtUrl(req.title.ktuvitID, ktuvitSub.id, req.params.token),
     });
   }
 
@@ -150,7 +150,7 @@ const formatSubs = (req, res) => {
   res.send(stremioSubs);
 };
 
-const formatSrtUrl = (ktuvitTitleId, ktuvitSubId) => {
+const formatSrtUrl = (ktuvitTitleId, ktuvitSubId, token) => {
   const PORT = config.get("PORT");
   const HTTP = config.get("ssl") ? "https" : "http";
   const HOSTNAME = config.get("HOSTNAME");
@@ -159,7 +159,7 @@ const formatSrtUrl = (ktuvitTitleId, ktuvitSubId) => {
   const PRODUCTION = config.util.getEnv("NODE_ENV") === "production";
   const addonUrl = `${HTTP}://${HOSTNAME}${PRODUCTION ? "" : `:${PORT}`}`;
 
-  const finalSrtRoute = `${addonUrl}/srt/${ktuvitTitleId}/${ktuvitSubId}.srt`;
+  const finalSrtRoute = `${addonUrl}/${encodeURIComponent(token)}/srt/${ktuvitTitleId}/${ktuvitSubId}.srt`;
 
   return finalSrtRoute;
 };
